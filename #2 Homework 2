@@ -1,0 +1,83 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <memory>
+
+class Student {
+private:
+    int student_id;
+    std::string name;
+    static int next_student_id;
+public:
+    Student(const std::string& student_name)
+        : student_id(next_student_id++), name(student_name) {
+        std::cout << "Student " << name << " (ID: " << student_id << ") created" << std::endl;
+    }
+    ~Student() {
+        std::cout << "Student " << name << " (ID: " << student_id << ") graduated" << std::endl;
+    }
+    int getStudentId() const { return student_id; }
+    std::string getName() const { return name; }
+    Student(const Student&) = delete;
+    Student& operator=(const Student&) = delete;
+};
+int Student::next_student_id = 1;
+class Course {
+private:
+    std::string course_name;
+    std::vector<Student*> enrolled_students; 
+public:
+    Course(const std::string& name) : course_name(name) {
+        std::cout << "Course \"" << course_name << "\" created" << std::endl;
+    }
+    void enroll_student(Student* student) {
+        for (const auto& enrolled_student : enrolled_students) {
+            if (enrolled_student == student) {
+                std::cout << "Student " << student->getName() << " is already on course \""
+                    << course_name << "\"" << std::endl;
+                return;
+            }
+        }
+
+        enrolled_students.push_back(student);
+        std::cout << "Student " << student->getName() << " is on course \""
+            << course_name << "\"" << std::endl;
+    }
+    void display_course_roster() const {
+        std::cout << "\n=== List of students of the course \"" << course_name << "\" ===" << std::endl;
+        if (enrolled_students.empty()) {
+            std::cout << "No students on the course" << std::endl;
+        }
+        else {
+            for (const auto& student : enrolled_students) {
+                std::cout << "ID: " << student->getStudentId()
+                    << ", Name: " << student->getName() << std::endl;
+            }
+        }
+        std::cout << "Summary num of students: " << enrolled_students.size() << std::endl;
+    }
+    ~Course() {
+        std::cout << "Course \"" << course_name << "\" finished" << std::endl;
+        enrolled_students.clear();
+    }
+};
+
+void demonstrateStudentCourseSystem() {
+
+    auto student1 = std::make_unique<Student>("Ivanov Ivan");
+    auto student2 = std::make_unique<Student>("Fedorov Fedor");
+    auto course1 = std::make_unique<Course>("1st course");
+
+
+    course1->enroll_student(student1.get());
+    course1->enroll_student(student2.get());
+   
+
+
+    course1->display_course_roster();
+    auto student3 = std::make_unique<Student>("Dmytriev Dmytry");
+}
+int main() {
+    demonstrateStudentCourseSystem();
+    return 0;
+}
