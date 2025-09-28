@@ -1,0 +1,84 @@
+#include <iostream>
+#include <cmath>
+
+struct Point {
+private:
+    double x;
+    double y;
+
+public:
+    Point(double x_coord = 0.0, double y_coord = 0.0) : x(x_coord), y(y_coord) {
+        std::cout << "Point created: (" << x << ", " << y << ")" << std::endl;
+    }
+    Point(const Point& other) : x(other.x), y(other.y) {
+        std::cout << "Point copied: (" << x << ", " << y << ")" << std::endl;
+    }
+    void display() const {
+        std::cout << "(" << this->x << ", " << this->y << ")";
+    }
+    double getX() const { return this->x; }
+    double getY() const { return this->y; }
+    void setX(double new_x) { this->x = new_x; }
+    void setY(double new_y) { this->y = new_y; }
+};
+class Rectangle {
+private:
+    Point top_left;
+    Point bottom_right;
+
+public:
+    Rectangle(const Point& tl, const Point& br) : top_left(tl), bottom_right(br) {
+        std::cout << "Rectangle created" << std::endl;
+    }
+    Rectangle(const Rectangle& other)
+        : top_left(other.top_left), bottom_right(other.bottom_right) {
+        std::cout << "Rectangle copied" << std::endl;
+    }
+    double get_area() const {
+        double width = std::abs(this->bottom_right.getX() - this->top_left.getX());
+        double height = std::abs(this->top_left.getY() - this->bottom_right.getY());
+        return width * height;
+    }
+    void display_dimensions() const {
+        std::cout << "Rectangle: ";
+        std::cout << "Top left angle: ";
+        this->top_left.display();
+        std::cout << ", Bottom right angle: ";
+        this->bottom_right.display();
+        std::cout << std::endl;
+    }
+    Point getTopLeft() const { return this->top_left; }
+    Point getBottomRight() const { return this->bottom_right; }
+    friend void print_rectangle_details(const Rectangle& rect);
+};
+void print_rectangle_details(const Rectangle& rect) {
+    rect.top_left.display();
+    std::cout << std::endl;
+    rect.bottom_right.display();
+    std::cout << std::endl;
+    double width = std::abs(rect.bottom_right.getX() - rect.top_left.getX());
+    double height = std::abs(rect.top_left.getY() - rect.bottom_right.getY());
+
+    std::cout << "Width: " << width << std::endl;
+    std::cout << "Height: " << height << std::endl;
+    std::cout << "Area: " << rect.get_area() << std::endl;
+}
+void demonstrate_geometry_system() {
+    Point p1(2.0, 5.0);
+    Point p2(8.0, 1.0);
+    Rectangle rect(p1, p2);
+    rect.display_dimensions();
+    double area = rect.get_area();
+    std::cout << "Rectangle area: " << area << std::endl;
+    print_rectangle_details(rect);
+    Rectangle rect_copy = rect;
+    rect_copy.display_dimensions();
+    std::cout << "Copy area: " << rect_copy.get_area() << std::endl;
+    print_rectangle_details(rect_copy);
+}
+
+
+int main() {
+    demonstrate_geometry_system();
+    return 0;
+}
