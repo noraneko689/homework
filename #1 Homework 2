@@ -1,0 +1,81 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <memory>
+enum class PublicationType {
+    BOOK,
+    MAGAZINE
+};
+class Publication {
+private:
+    std::string title;
+    std::string author;
+    int publication_year;
+public:
+    Publication(const std::string& t, const std::string& a, int year)
+        : title(t), author(a), publication_year(year) {}
+    std::string getTitle() const { return title; }
+    std::string getAuthor() const { return author; }
+    int getPublicationYear() const { return publication_year; }
+    virtual void display_info() const = 0;
+    virtual ~Publication() {
+        std::cout << "Publication '" << title << "' deleted" << std::endl;
+    }
+};
+class Book : public Publication {
+private:
+    std::string isbn;
+public:
+    Book(const std::string& t, const std::string& a, int year, const std::string& i)
+        : Publication(t, a, year), isbn(i) {}
+
+    void display_info() const override {
+        std::cout << "Book: \"" << getTitle() << "\", Autor: " << getAuthor()
+            << ", Year: " << getPublicationYear()
+            << ", ISBN: " << isbn << std::endl;
+    }
+    ~Book() override {
+        std::cout << "Book deleted" << std::endl;
+    }
+};
+class Magazine : public Publication {
+private:
+    int issue_number;
+public:
+    Magazine(const std::string& t, const std::string& a, int year, int issue)
+        : Publication(t, a, year), issue_number(issue) {}
+    void display_info() const override {
+        std::cout << "Magazine: \"" << getTitle() << "\", Author: " << getAuthor()
+            << ", Year: " << getPublicationYear()
+            << ", Number: " << issue_number << std::endl;
+    }
+    ~Magazine() override {
+        std::cout << "Magazine deleted" << std::endl;
+    }
+};
+std::unique_ptr<Publication> createPublication(PublicationType type,
+    const std::string& title,
+    const std::string& author,
+    int year,
+    const std::string& isbn = "",
+    int issue = 0) {
+    switch (type) {
+    case PublicationType::BOOK:
+        return std::make_unique<Book>(title, author, year, isbn);
+    case PublicationType::MAGAZINE:
+        return std::make_unique<Magazine>(title, author, year, issue);
+    default:
+        return nullptr;
+    }
+}
+int main() {
+    std::vector<std::unique_ptr<Publication>> publications;
+    publications.push_back(std::make_unique<Book>(
+        "War and peace", "Lev Tolstoy", 1869, "978-5-389-07435-3"));
+    publications.push_back(std::make_unique<Magazine>(
+        "National Geographic", "National Geographic Society", 2023, 245));
+    std::cout << "=== Catalog ===" << std::endl;
+    for (const auto& pub : publications) {
+        pub->display_info();
+    }
+}
