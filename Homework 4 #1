@@ -1,0 +1,191 @@
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+class Vehicle {
+private:
+    int speed;
+    double weight;
+    static int count;
+
+public:
+    Vehicle(int s = 0, double w = 0.0) : speed(s), weight(w) {
+        count++;
+        cout << "Vehicle constructor. Total vehicles: " << count << endl;
+    }
+
+    Vehicle(const Vehicle& other) : speed(other.speed), weight(other.weight) {
+        count++;
+        cout << "Vehicle copy constructor. Total vehicles: " << count << endl;
+    }
+
+    virtual ~Vehicle() {
+        count--;
+        cout << "Vehicle destructor. Remaining vehicles: " << count << endl;
+    }
+
+    int getSpeed() const { return speed; }
+    double getWeight() const { return weight; }
+
+    virtual void info() const {
+        cout << "Vehicle: speed=" << speed << " km/h, weight=" << weight << " kg" << endl;
+    }
+
+    static int getCount() { return count; }
+
+    friend bool compareByWeight(const Vehicle& v1, const Vehicle& v2);
+};
+
+int Vehicle::count = 0;
+
+bool compareByWeight(const Vehicle& v1, const Vehicle& v2) {
+    return v1.weight < v2.weight;
+}
+
+class Car : public Vehicle {
+private:
+    string brand;
+
+public:
+    Car(int s = 0, double w = 0.0, const string& b = "Unknown")
+        : Vehicle(s, w), brand(b) {
+        cout << "Car constructor. Brand: " << brand << endl;
+    }
+
+    Car(const Car& other) : Vehicle(other), brand(other.brand) {
+        cout << "Car copy constructor. Brand: " << brand << endl;
+    }
+
+    virtual ~Car() {
+        cout << "Car destructor. Brand: " << brand << endl;
+    }
+
+    virtual void info() const override {
+        cout << "Car: brand=" << brand << ", speed=" << getSpeed()
+            << " km/h, weight=" << getWeight() << " kg" << endl;
+    }
+
+    string getBrand() const { return brand; }
+};
+
+class ElectricCar : public Car {
+private:
+    double batteryCapacity;
+
+public:
+    ElectricCar(int s = 0, double w = 0.0, const string& b = "Unknown", double bc = 0.0)
+        : Car(s, w, b), batteryCapacity(bc) {
+        cout << "ElectricCar constructor. Battery: " << batteryCapacity << " kWh" << endl;
+    }
+
+    ElectricCar(const ElectricCar& other)
+        : Car(other), batteryCapacity(other.batteryCapacity) {
+        cout << "ElectricCar copy constructor. Battery: " << batteryCapacity << " kWh" << endl;
+    }
+
+    virtual ~ElectricCar() {
+        cout << "ElectricCar destructor. Battery: " << batteryCapacity << " kWh" << endl;
+    }
+
+    virtual void info() const override {
+        cout << "ElectricCar: brand=" << getBrand() << ", speed=" << getSpeed()
+            << " km/h, weight=" << getWeight() << " kg, battery="
+            << batteryCapacity << " kWh, range=" << range() << " km" << endl;
+    }
+
+    virtual double range() const {
+        return batteryCapacity / 0.2;
+    }
+
+    operator double() const {
+        return batteryCapacity;
+    }
+
+    double getBatteryCapacity() const { return batteryCapacity; }
+};
+
+int main() {
+    cout << "=== Demonstration of multilevel inheritance ===" << endl << endl;
+
+    cout << "1. Creating objects:" << endl;
+    Vehicle vehicle(100, 1500);
+    Car car(180, 1200, "Toyota");
+    ElectricCar electricCar(200, 1800, "Tesla", 75.0);
+
+    cout << endl;
+
+    cout << "2. Static binding:" << endl;
+    vehicle.info();
+    car.info();
+    electricCar.info();
+
+    cout << endl;
+
+    cout << "3. Dynamic binding through base class pointers:" << endl;
+    Vehicle* vehicles[] = { &vehicle, &car, &electricCar };
+
+    for (int i = 0; i < 3; i++) {
+        vehicles[i]->info();
+    }
+
+    cout << endl;
+
+    cout << "4. Dynamic memory allocation:" << endl;
+    Vehicle* dynamicVehicle = new Vehicle(120, 1300);
+    Vehicle* dynamicCar = new Car(160, 1100, "Honda");
+Vehicle* dynamicElectricCar = new ElectricCar(220, 1900, "Nissan", 62.0);
+
+cout << endl << "Information about dynamically created objects:" << endl;
+dynamicVehicle->info();
+dynamicCar->info();
+dynamicElectricCar->info();
+
+cout << endl;
+
+cout << "5. Comparing objects by weight:" << endl;
+cout << "Vehicle weight < Car weight: "
+<< compareByWeight(vehicle, car) << endl;
+cout << "ElectricCar weight < Vehicle weight: "
+<< compareByWeight(electricCar, vehicle) << endl;
+
+cout << endl;
+
+cout << "6. Converting ElectricCar to double:" << endl;
+double battery = electricCar;
+cout << "Battery capacity: " << battery << " kWh" << endl;
+cout << "Explicit conversion: " << static_cast<double>(electricCar) << " kWh" << endl;
+
+cout << endl;
+
+cout << "7. Deleting dynamic objects:" << endl;
+delete dynamicVehicle;
+delete dynamicCar;
+delete dynamicElectricCar;
+
+cout << endl;
+
+cout << "8. Working with vector of base class pointers:" << endl;
+vector<Vehicle*> vehicleList;
+vehicleList.push_back(new Vehicle(90, 800));
+vehicleList.push_back(new Car(140, 950, "Ford"));
+vehicleList.push_back(new ElectricCar(180, 1600, "BMW", 50.0));
+
+for (const auto& v : vehicleList) {
+    v->info();
+}
+
+for (auto& v : vehicleList) {
+    delete v;
+}
+vehicleList.clear();
+
+cout << endl;
+
+cout << "9. Final Vehicle object count: " << Vehicle::getCount() << endl;
+
+cout << endl << "=== Program completed ===" << endl;
+
+return 0;
+}
