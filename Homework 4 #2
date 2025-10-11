@@ -1,0 +1,117 @@
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+class Shape {
+public:
+    virtual double area() const = 0;
+    virtual ~Shape() {}
+};
+
+class Rectangle : public Shape {
+private:
+    double width;
+    double height;
+
+public:
+    Rectangle(double w = 0, double h = 0) : width(w), height(h) {}
+
+    double getWidth() const { return width; }
+    double getHeight() const { return height; }
+
+    void setWidth(double w) { width = w; }
+    void setHeight(double h) { height = h; }
+
+    virtual double area() const override {
+        return width * height;
+    }
+};
+
+class Colored {
+private:
+    string color;
+
+public:
+    Colored(const string& c = "white") : color(c) {}
+
+    string getColor() const { return color; }
+    void setColor(const string& c) { color = c; }
+};
+
+class ColoredRectangle : public Rectangle, public Colored {
+public:
+    ColoredRectangle(double w = 0, double h = 0, const string& c = "white")
+        : Rectangle(w, h), Colored(c) {}
+
+    virtual double area() const override {
+        return Rectangle::area();
+    }
+
+    void setWidth(double w) = delete;
+    void setHeight(double h) = delete;
+};
+
+void printColorAndArea(const ColoredRectangle& cr) {
+    cout << "Color: " << cr.getColor() << ", Area: " << cr.area() << endl;
+}
+
+int main() {
+    cout << "=== Abstract Classes and Multiple Inheritance ===" << endl << endl;
+
+    cout << "1. Creating objects:" << endl;
+    Rectangle rect(5, 3);
+    ColoredRectangle coloredRect(4, 6, "red");
+
+    cout << "Rectangle area: " << rect.area() << endl;
+    cout << "ColoredRectangle area: " << coloredRect.area() << endl;
+
+    cout << endl;
+
+    cout << "2. Dynamic binding through Shape pointers:" << endl;
+    Shape* shapes[] = { &rect, &coloredRect };
+
+    for (int i = 0; i < 2; i++) {
+        cout << "Shape area: " << shapes[i]->area() << endl;
+    }
+
+    cout << endl;
+
+    cout << "3. Friend function demonstration:" << endl;
+    printColorAndArea(coloredRect);
+
+    cout << endl;
+
+    cout << "4. Dynamic type checking:" << endl;
+    for (int i = 0; i < 2; i++) {
+        ColoredRectangle* cr = dynamic_cast<ColoredRectangle*>(shapes[i]);
+        if (cr) {
+            cout << "Object is a ColoredRectangle with color: " << cr->getColor() << endl;
+        }
+        else {
+            cout << "Object is not a ColoredRectangle" << endl;
+        }
+    }
+
+    cout << endl;
+
+    cout << "5. Function hiding demonstration:" << endl;
+    rect.setWidth(10);
+    rect.setHeight(8);
+    cout << "Modified Rectangle area: " << rect.area() << endl;
+
+    cout << "ColoredRectangle setWidth/setHeight methods are deleted" << endl;
+
+    cout << endl;
+
+    cout << "6. Multiple inheritance access:" << endl;
+    cout << "ColoredRectangle color: " << coloredRect.getColor() << endl;
+    cout << "ColoredRectangle dimensions: " << coloredRect.getWidth()
+        << " x " << coloredRect.getHeight() << endl;
+
+    cout << endl;
+
+    cout << "=== Program completed ===" << endl;
+
+    return 0;
+}
