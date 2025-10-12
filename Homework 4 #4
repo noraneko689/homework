@@ -1,0 +1,157 @@
+#include <iostream>
+#include <vector>
+#include <iomanip>
+
+using namespace std;
+
+class Currency {
+protected:
+    double amount;
+
+public:
+    Currency(double a = 0.0) : amount(a) {}
+    virtual ~Currency() {}
+
+    virtual double toUSD() const = 0;
+    virtual void print(ostream& os) const = 0;
+
+    operator double() const {
+        return amount;
+    }
+
+    friend ostream& operator<<(ostream& os, const Currency& currency);
+};
+
+ostream& operator<<(ostream& os, const Currency& currency) {
+    currency.print(os);
+    return os;
+}
+
+class Euro : public Currency {
+private:
+    static const double EXCHANGE_RATE;
+
+public:
+    Euro(double a = 0.0) : Currency(a) {}
+    virtual ~Euro() {}
+
+    virtual double toUSD() const override {
+        return amount * EXCHANGE_RATE;
+    }
+
+    virtual void print(ostream& os) const override {
+        os << fixed << setprecision(2) << amount << " EUR";
+    }
+};
+
+const double Euro::EXCHANGE_RATE = 1.07;
+
+class Pound : public Currency {
+private:
+    static const double EXCHANGE_RATE;
+
+public:
+    Pound(double a = 0.0) : Currency(a) {}
+    virtual ~Pound() {}
+
+    virtual double toUSD() const override {
+        return amount * EXCHANGE_RATE;
+    }
+
+    virtual void print(ostream& os) const override {
+        os << fixed << setprecision(2) << amount << " GBP";
+    }
+};
+
+const double Pound::EXCHANGE_RATE = 1.27;
+
+class Yen : public Currency {
+private:
+    static const double EXCHANGE_RATE;
+
+public:
+    Yen(double a = 0.0) : Currency(a) {}
+    virtual ~Yen() {}
+
+    virtual double toUSD() const override {
+        return amount * EXCHANGE_RATE;
+    }
+
+    virtual void print(ostream& os) const override {
+        os << fixed << setprecision(2) << amount << " JPY";
+    }
+};
+
+const double Yen::EXCHANGE_RATE = 0.0068;
+
+int main() {
+    cout << "1. Creating currency objects:" << endl;
+    Euro eur(100.0);
+    Pound gbp(75.0);
+    Yen jpy(5000.0);
+
+    cout << "Euro: " << eur << endl;
+    cout << "Pound: " << gbp << endl;
+    cout << "Yen: " << jpy << endl;
+
+    cout << endl;
+
+    cout << "2. Type conversion to double:" << endl;
+    cout << "Euro as double: " << static_cast<double>(eur) << endl;
+    cout << "Pound as double: " << static_cast<double>(gbp) << endl;
+    cout << "Yen as double: " << static_cast<double>(jpy) << endl;
+
+    cout << endl;
+
+    cout << "3. Individual conversions to USD:" << endl;
+    cout << eur << " = $" << fixed << setprecision(2) << eur.toUSD() << endl;
+    cout << gbp << " = $" << fixed << setprecision(2) << gbp.toUSD() << endl;
+    cout << jpy << " = $" << fixed << setprecision(2) << jpy.toUSD() << endl;
+
+    cout << endl;
+
+    cout << "4. Array of base class pointers with dynamic binding:" << endl;
+    vector<Currency*> currencies;
+    currencies.push_back(new Euro(250.0));
+    currencies.push_back(new Pound(150.0));
+    currencies.push_back(new Yen(10000.0));
+    currencies.push_back(new Euro(75.5));
+    currencies.push_back(new Yen(25000.0));
+
+    double totalUSD = 0.0;
+    for (size_t i = 0; i < currencies.size(); i++) {
+        cout << "Currency " << i + 1 << ": " << *currencies[i];
+        double usd = currencies[i]->toUSD();
+        cout << " = $" << fixed << setprecision(2) << usd << endl;
+        totalUSD += usd;
+    }
+
+    cout << endl;
+    cout << "Total in USD: $" << fixed << setprecision(2) << totalUSD << endl;
+
+    cout << endl;
+
+    cout << "5. Demonstrating virtual destructors:" << endl;
+    Currency* temp = new Yen(1000.0);
+    cout << "Created Yen via Currency pointer: " << *temp << endl;
+    cout << "Deleting via base class pointer..." << endl;
+    delete temp;
+
+    cout << endl;
+
+    cout << "6. Mixed operations with type conversion:" << endl;
+    Euro eur1(50.0);
+    Euro eur2(25.5);
+    double totalEuro = static_cast<double>(eur1) + static_cast<double>(eur2);
+    cout << eur1 << " + " << eur2 << " = " << totalEuro << " EUR total" << endl;
+    cout << "In USD: $" << fixed << setprecision(2) << eur1.toUSD() + eur2.toUSD() << endl;
+
+    cout << endl;
+
+    for (auto currency : currencies) {
+        delete currency;
+    }
+    currencies.clear();
+
+    return 0;
+}
