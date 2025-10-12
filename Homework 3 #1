@@ -1,0 +1,95 @@
+#include <iostream>
+
+using namespace std;
+
+class AudioPlayer {
+public:
+    AudioPlayer() {
+        cout << "AudioPlayer constructor" << endl;
+    }
+
+    virtual ~AudioPlayer() {
+        cout << "AudioPlayer destructor" << endl;
+    }
+
+    virtual void play() {
+        cout << "Playing audio: Sweet Harmony Melody" << endl;
+    }
+};
+
+class VideoPlayer {
+public:
+    VideoPlayer() {
+        cout << "VideoPlayer constructor" << endl;
+    }
+
+    virtual ~VideoPlayer() {
+        cout << "VideoPlayer destructor" << endl;
+    }
+
+    virtual void play() {
+        cout << "Playing video: Beautiful Sunset Scene" << endl;
+    }
+};
+
+class MediaPlayer : public AudioPlayer, public VideoPlayer {
+private:
+    static int objectCount;
+
+public:
+    MediaPlayer() {
+        objectCount++;
+        cout << "MediaPlayer constructor. Total objects: " << this->objectCount << endl;
+    }
+
+    MediaPlayer(const MediaPlayer& other) : AudioPlayer(other), VideoPlayer(other) {
+        objectCount++;
+        cout << "MediaPlayer copy constructor. Total objects: " << this->objectCount << endl;
+    }
+
+    virtual ~MediaPlayer() {
+        objectCount--;
+        cout << "MediaPlayer destructor. Remaining objects: " << this->objectCount << endl;
+    }
+
+    virtual void play() override {
+        AudioPlayer::play();
+        VideoPlayer::play();
+    }
+
+    static int getObjectCount() {
+        return objectCount;
+    }
+
+    friend void displayMediaPlayerInfo(const MediaPlayer& player);
+};
+
+int MediaPlayer::objectCount = 0;
+
+void displayMediaPlayerInfo(const MediaPlayer& player) {
+    cout << "Friend function: Current MediaPlayer objects count = " << player.objectCount << endl;
+}
+
+int main() {
+    MediaPlayer player1;
+    cout << endl;
+
+    {
+
+        cout << "2. Calling play() method on player1:" << endl;
+        player1.play();
+        cout << endl;
+        cout << "5. Dynamic binding through base pointers:" << endl;
+        AudioPlayer* audioPtr = &player1;
+        VideoPlayer* videoPtr = &player1;
+
+        cout << "AudioPlayer pointer play(): ";
+        audioPtr->play();
+
+        cout << "VideoPlayer pointer play(): ";
+        videoPtr->play();
+        cout << endl;
+    }
+
+    return 0;
+}
