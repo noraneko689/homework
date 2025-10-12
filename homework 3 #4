@@ -1,0 +1,129 @@
+#include <iostream>
+#include <string>
+using namespace std;
+
+struct Date {
+    int day;
+    int month;
+    int year;
+};
+
+enum Priority {
+    LOW,
+    NORMAL,
+    URGENT
+};
+
+class Task {
+protected:
+    string description;
+    Date deadline;
+    Priority taskPriority;
+    bool completed;
+
+public:
+    Task(string desc, Date dl, Priority p)
+        : description(desc), deadline(dl), taskPriority(p), completed(false) {}
+
+    virtual void display() const {
+        cout << "Description: " << description << endl;
+        cout << "Deadline: " << deadline.day << "/"
+            << deadline.month << "/" << deadline.year << endl;
+
+        cout << "Priority: ";
+        switch (taskPriority) {
+        case LOW: cout << "LOW"; break;
+        case NORMAL: cout << "NORMAL"; break;
+        case URGENT: cout << "URGENT"; break;
+        }
+        cout << endl;
+
+        cout << "Status: " << (completed ? "COMPLETED" : "PENDING") << endl;
+    }
+
+    void markCompleted() {
+        completed = true;
+    }
+
+    virtual int getEstimatedHours() const {
+        return 1;
+    }
+
+    virtual ~Task() {}
+};
+
+class ProjectTask : public Task {
+private:
+    string projectName;
+    int teamSize;
+
+public:
+    ProjectTask(string desc, Date dl, Priority p, string project, int team)
+        : Task(desc, dl, p), projectName(project), teamSize(team) {}
+
+    void display() const override {
+        cout << "=== PROJECT TASK ===" << endl;
+        Task::display();
+        cout << "Project: " << projectName << endl;
+        cout << "Team Size: " << teamSize << " people" << endl;
+        cout << "Estimated hours: " << getEstimatedHours() << "h" << endl;
+    }
+
+    int getEstimatedHours() const override {
+        return teamSize * 2;
+    }
+};
+
+class MeetingTask : public Task {
+private:
+    string location;
+    int duration;
+
+public:
+    MeetingTask(string desc, Date dl, Priority p, string loc, int dur)
+        : Task(desc, dl, p), location(loc), duration(dur) {}
+
+    void display() const override {
+        cout << "=== MEETING ===" << endl;
+        Task::display();
+        cout << "Location: " << location << endl;
+        cout << "Duration: " << duration << " minutes" << endl;
+    }
+
+    int getEstimatedHours() const override {
+        return (duration + 30) / 60;
+    }
+};
+
+int main() {
+    Date today = { 4, 10, 2025 };
+    Date tomorrow = { 5, 10, 2025 };
+
+    Task simpleTask("Send email to client", today, NORMAL);
+    ProjectTask projectTask("Develop new feature", tomorrow, URGENT, "Web App", 3);
+    MeetingTask meetingTask("Weekly team sync", today, LOW, "Conference Room A", 60);
+
+    cout << "SIMPLE TASK:" << endl;
+    simpleTask.display();
+
+    cout << "\nPROJECT TASK:" << endl;
+    projectTask.display();
+
+    cout << "\nMEETING TASK:" << endl;
+    meetingTask.display();
+
+    cout << "\n=== Marking project task as completed ===" << endl;
+    projectTask.markCompleted();
+    projectTask.display();
+
+    cout << "\n=== Using base class pointers ===" << endl;
+    Task* tasks[] = { &simpleTask, &projectTask, &meetingTask };
+
+    for (int i = 0; i < 3; i++) {
+        cout << "\nTask " << i + 1 << " (via pointer):" << endl;
+        tasks[i]->display();
+        cout << "Estimated hours: " << tasks[i]->getEstimatedHours() << "h" << endl;
+    }
+
+    return 0;
+}
