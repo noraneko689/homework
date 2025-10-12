@@ -1,0 +1,50 @@
+#include <iostream>
+using namespace std;
+
+class Shape {
+private:
+    void draw() {
+        cout << "Drawing shape" << endl;
+    }
+
+public:
+    void show() {
+        draw();
+    }
+
+    virtual ~Shape() {}
+};
+
+class Circle : public Shape {
+public:
+    void draw() {
+        cout << "Drawing circle" << endl;
+    }
+};
+
+void drawShape(Shape* shape) {
+    cout << "Attempting to call draw() through base pointer:" << endl;
+    shape->show();
+
+    Circle* circlePtr = dynamic_cast<Circle*>(shape);
+    if (circlePtr) {
+        cout << "Object is Circle, calling its draw():" << endl;
+        circlePtr->draw();
+    }
+    else {
+        cout << "This is not Circle, cannot call draw()." << endl;
+    }
+}
+
+int main() {
+    Shape s;
+    Circle c;
+
+    cout << "--- For Shape object ---" << endl;
+    drawShape(&s);
+
+    cout << "\n--- For Circle object ---" << endl;
+    drawShape(&c);
+
+    return 0;
+}
