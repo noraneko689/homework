@@ -1,0 +1,282 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <memory>
+#include <stdexcept>
+
+namespace Company {
+
+    class Employee {
+    protected:
+        std::string name;
+        int id;
+        double salary;
+
+    public:
+        Employee(const std::string& name, int id, double salary)
+            : name(name), id(id), salary(salary) {
+            if (salary < 0) {
+                throw std::invalid_argument("Salary cannot be negative");
+            }
+            if (id < 0) {
+                throw std::invalid_argument("ID cannot be negative");
+            }
+            if (name.empty()) {
+                throw std::invalid_argument("Name cannot be empty");
+            }
+        }
+
+        virtual ~Employee() {}
+
+        Employee(const Employee& other)
+            : name(other.name), id(other.id), salary(other.salary) {}
+
+        Employee& operator=(const Employee& other) {
+            if (this != &other) {
+                name = other.name;
+                id = other.id;
+                salary = other.salary;
+            }
+            return *this;
+        }
+
+        virtual double calculateBonus() const = 0;
+
+        std::string getName() const { return name; }
+        int getId() const { return id; }
+        double getSalary() const { return salary; }
+
+        void setName(const std::string& newName) {
+            if (newName.empty()) {
+                throw std::invalid_argument("Name cannot be empty");
+            }
+            name = newName;
+        }
+
+        void setSalary(double newSalary) {
+            if (newSalary < 0) {
+                throw std::invalid_argument("Salary cannot be negative");
+            }
+            salary = newSalary;
+        }
+
+        virtual std::string getType() const = 0;
+    };
+
+    class Manager : public Employee {
+    private:
+        int teamSize;
+
+    public:
+        Manager(const std::string& name, int id, double salary, int teamSize)
+            : Employee(name, id, salary), teamSize(teamSize) {
+            if (teamSize < 0) {
+                throw std::invalid_argument("Team size cannot be negative");
+            }
+        }
+
+        double calculateBonus() const override {
+            return salary * 0.25 + teamSize * 100;
+        }
+
+        std::string getType() const override {
+            return "Manager";
+        }
+
+        int getTeamSize() const { return teamSize; }
+        void setTeamSize(int newTeamSize) {
+            if (newTeamSize < 0) {
+                throw std::invalid_argument("Team size cannot be negative");
+            }
+            teamSize = newTeamSize;
+        }
+    };
+
+    class Developer : public Employee {
+    private:
+        std::string programmingLanguage;
+        int completedProjects;
+
+    public:
+        Developer(const std::string& name, int id, double salary,
+            const std::string& language, int projects)
+            : Employee(name, id, salary), programmingLanguage(language),
+            completedProjects(projects) {
+            if (projects < 0) {
+                throw std::invalid_argument("Completed projects cannot be negative");
+            }
+            if (language.empty()) {
+                throw std::invalid_argument("Programming language cannot be empty");
+            }
+        }
+
+        double calculateBonus() const override {
+            return salary * 0.15 + completedProjects * 500;
+        }
+
+        std::string getType() const override {
+            return "Developer";
+        }
+
+        std::string getProgrammingLanguage() const { return programmingLanguage; }
+        int getCompletedProjects() const { return completedProjects; }
+
+        void setProgrammingLanguage(const std::string& newLanguage) {
+            if (newLanguage.empty()) {
+                throw std::invalid_argument("Programming language cannot be empty");
+            }
+            programmingLanguage = newLanguage;
+        }
+
+        void setCompletedProjects(int projects) {
+            if (projects < 0) {
+                throw std::invalid_argument("Completed projects cannot be negative");
+            }
+            completedProjects = projects;
+        }
+    };
+
+    class Intern : public Employee {
+    private:
+        int universityYear;
+        std::string universityName;
+    public:
+        Intern(const std::string& name, int id, double salary,
+            int year, const std::string& uniName)
+            : Employee(name, id, salary), universityYear(year),
+            universityName(uniName) {
+            if (year < 1 || year > 6) {
+                throw std::invalid_argument("University year must be between 1 and 6");
+            }
+            if (uniName.empty()) {
+                throw std::invalid_argument("University name cannot be empty");
+            }
+        }
+
+        double calculateBonus() const override {
+            return 500;
+        }
+
+        std::string getType() const override {
+            return "Intern";
+        }
+
+        int getUniversityYear() const { return universityYear; }
+        std::string getUniversityName() const { return universityName; }
+
+        void setUniversityYear(int year) {
+            if (year < 1 || year > 6) {
+                throw std::invalid_argument("University year must be between 1 and 6");
+            }
+            universityYear = year;
+        }
+
+        void setUniversityName(const std::string& uniName) {
+            if (uniName.empty()) {
+                throw std::invalid_argument("University name cannot be empty");
+            }
+            universityName = uniName;
+        }
+    };
+
+    double calculateTotalBonus(const std::vector<Employee*>& employees) {
+        double total = 0.0;
+
+        for (const auto& emp : employees) {
+            if (auto* manager = dynamic_cast<Manager*>(emp)) {
+                std::cout << "Processing Manager: " << manager->getName()
+                    << " (Team: " << manager->getTeamSize() << ")" << std::endl;
+                total += manager->calculateBonus();
+            }
+            else if (auto* developer = dynamic_cast<Developer*>(emp)) {
+                std::cout << "Processing Developer: " << developer->getName()
+                    << " (" << developer->getProgrammingLanguage() << ")" << std::endl;
+                total += developer->calculateBonus();
+            }
+            else if (auto* intern = dynamic_cast<Intern*>(emp)) {
+                std::cout << "Processing Intern: " << intern->getName()
+                    << " (" << intern->getUniversityName() << ")" << std::endl;
+                total += intern->calculateBonus();
+            }
+        }
+
+        return total;
+    }
+
+    void printEmployeeInfo(const Employee& emp) {
+        std::cout << "Type: " << emp.getType()
+            << " | ID: " << emp.getId()
+            << " | Name: " << emp.getName()
+            << " | Salary: " << emp.getSalary()
+            << " | Bonus: " << emp.calculateBonus() << std::endl;
+    }
+
+}
+
+void demonstrateEmployeeSystem() {
+    using namespace Company;
+
+    std::cout << "=== EMPLOYEE MANAGEMENT SYSTEM ===" << std::endl;
+
+    try {
+        std::vector<Employee*> employees;
+
+        Manager manager("John Smith", 101, 50000, 8);
+        Developer developer("Alice Johnson", 102, 40000, "C++", 3);
+        Intern intern("Bob Wilson", 103, 10000, 3, "Technical University");
+
+        Manager manager2("Carol Brown", 104, 60000, 12);
+        Developer developer2("David Lee", 105, 45000, "Python", 5);
+
+        employees.push_back(&manager);
+        employees.push_back(&developer);
+        employees.push_back(&intern);
+        employees.push_back(&manager2);
+        employees.push_back(&developer2);
+
+        std::cout << "\n--- Employee Information ---" << std::endl;
+        for (const auto& emp : employees) {
+            printEmployeeInfo(*emp);
+        }
+
+        std::cout << "\n--- Bonus Calculation with Dynamic Casting ---" << std::endl;
+        double totalBonus = calculateTotalBonus(employees);
+        std::cout << "Total bonus for all employees: " << totalBonus << std::endl;
+
+        std::cout << "\n--- Testing Assignment Operator ---" << std::endl;
+        Manager tempManager("Temp", 999, 30000, 5);
+        std::cout << "Before assignment: " << tempManager.getName() << std::endl;
+        tempManager = manager;
+        std::cout << "After assignment: " << tempManager.getName() << std::endl;
+
+        std::cout << "\n--- Testing Self-Assignment Protection ---" << std::endl;
+        tempManager = tempManager;
+        std::cout << "Self-assignment completed successfully" << std::endl;
+
+        std::cout << "\n--- Testing Exception Handling ---" << std::endl;
+        try {
+            Employee* invalid = new Developer("", 106, -1000, "Java", -2);
+            delete invalid;
+        }
+        catch (const std::exception& e) {
+            std::cout << "Caught exception: " << e.what() << std::endl;
+        }
+
+        try {
+            Employee* invalid = new Intern("Test", 107, 5000, 0, "");
+            delete invalid;
+        }
+        catch (const std::exception& e) {
+            std::cout << "Caught exception: " << e.what() << std::endl;
+        }
+
+    }
+    catch (const std::exception& e) {
+        std::cout << "Unexpected error: " << e.what() << std::endl;
+    }
+}
+
+int main() {
+    demonstrateEmployeeSystem();
+    return 0;
+}
