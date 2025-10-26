@@ -1,0 +1,261 @@
+#include <iostream>
+#include <string>
+#include <stdexcept>
+#include <vector>
+
+class Item {
+protected:
+    static int total_items;
+    int id;
+    std::string title;
+    int year;
+
+public:
+    Item(int id, const std::string& title, int year)
+        : id(id), title(title), year(year) {
+        total_items++;
+    }
+
+    Item(const Item& other)
+        : id(other.id), title(other.title), year(other.year) {
+        total_items++;
+    }
+
+    virtual ~Item() {
+        total_items--;
+    }
+
+    Item& operator=(const Item& other) {
+        if (this != &other) {
+            id = other.id;
+            title = other.title;
+            year = other.year;
+        }
+        return *this;
+    }
+
+    char& operator[](size_t index) {
+        if (index >= title.length()) {
+            throw std::out_of_range("Index out of range for title: " + title);
+        }
+        return title[index];
+    }
+
+    virtual void printInfo() const = 0;
+
+    int getId() const { return id; }
+    const std::string& getTitle() const { return title; }
+    int getYear() const { return year; }
+
+    static int getTotalItems() { return total_items; }
+
+    friend void compareByYear(const Item& item1, const Item& item2);
+};
+
+int Item::total_items = 0;
+
+void compareByYear(const Item& item1, const Item& item2) {
+    if (item1.year < item2.year) {
+        std::cout << "Older item: " << item1.title
+            << " (" << item1.year << ")" << std::endl;
+    }
+    else if (item1.year > item2.year) {
+        std::cout << "Older item: " << item2.title
+            << " (" << item2.year << ")" << std::endl;
+    }
+    else {
+        std::cout << "Both items published in the same year: "
+            << item1.year << std::endl;
+    }
+}
+
+class Book : public Item {
+private:
+    static int book_count;
+    std::string author;
+    std::string isbn;
+
+public:
+    Book(int id, const std::string& title, int year,
+        const std::string& author, const std::string& isbn)
+        : Item(id, title, year), author(author), isbn(isbn) {
+        book_count++;
+    }
+
+    Book(const Book& other)
+        : Item(other), author(other.author), isbn(other.isbn) {
+        book_count++;
+    }
+
+    ~Book() override {
+        book_count--;
+    }
+
+    Book& operator=(const Book& other) {
+        if (this != &other) {
+            Item::operator=(other);
+            author = other.author;
+            isbn = other.isbn;
+        }
+        return *this;
+    }
+
+    void printInfo() const override {
+        std::cout << "BOOK | ID: " << id << " | Title: " << title
+            << " | Author: " << author << " | Year: " << year
+            << " | ISBN: " << isbn << std::endl;
+    }
+
+    static int getBookCount() { return book_count; }
+};
+
+int Book::book_count = 0;
+
+class Magazine : public Item {
+private:
+    static int magazine_count;
+    int issue_number;
+    std::string publisher;
+
+public:
+    Magazine(int id, const std::string& title, int year,
+        int issue_number, const std::string& publisher)
+        : Item(id, title, year), issue_number(issue_number),
+        publisher(publisher) {
+        magazine_count++;
+    }
+
+    Magazine(const Magazine& other)
+        : Item(other), issue_number(other.issue_number),
+        publisher(other.publisher) {
+        magazine_count++;
+    }
+
+    ~Magazine() override {
+        magazine_count--;
+    }
+
+    Magazine& operator=(const Magazine& other) {
+        if (this != &other) {
+            Item::operator=(other);
+            issue_number = other.issue_number;
+            publisher = other.publisher;
+        }
+        return *this;
+    }
+
+    void printInfo() const override {
+        std::cout << "MAGAZINE | ID: " << id << " | Title: " << title
+            << " | Publisher: " << publisher
+            << " | Year: " << year
+            << " | Issue: " << issue_number << std::endl;
+    }
+
+    static int getMagazineCount() { return magazine_count; }
+};
+
+int Magazine::magazine_count = 0;
+class DVD : public Item {
+private:
+    static int dvd_count;
+    int duration;
+    std::string director;
+
+public:
+    DVD(int id, const std::string& title, int year,
+        int duration, const std::string& director)
+        : Item(id, title, year), duration(duration), director(director) {
+        dvd_count++;
+    }
+
+    DVD(const DVD& other)
+        : Item(other), duration(other.duration), director(other.director) {
+        dvd_count++;
+    }
+
+    ~DVD() override {
+        dvd_count--;
+    }
+
+    DVD& operator=(const DVD& other) {
+        if (this != &other) {
+            Item::operator=(other);
+            duration = other.duration;
+            director = other.director;
+        }
+        return *this;
+    }
+
+    void printInfo() const override {
+        std::cout << "DVD | ID: " << id << " | Title: " << title
+            << " | Director: " << director << " | Year: " << year
+            << " | Duration: " << duration << " min" << std::endl;
+    }
+
+    static int getDVDCount() { return dvd_count; }
+};
+
+int DVD::dvd_count = 0;
+
+void demonstrateLibrary() {
+    std::cout << "=== LIBRARY DEMONSTRATION ===" << std::endl;
+
+    Book book1(1, "War and Peace", 1869, "Leo Tolstoy", "978-5-389-00000-1");
+    Book book2(2, "Crime and Punishment", 1866, "Fyodor Dostoevsky", "978-5-389-00000-2");
+
+    Magazine magazine1(3, "Science and Life", 2023, 5, "Science Publisher");
+    Magazine magazine2(4, "Youth Technology", 1985, 8, "Young Guard");
+
+    DVD dvd1(5, "The Godfather", 1972, 175, "Francis Ford Coppola");
+    DVD dvd2(6, "The Shawshank Redemption", 1994, 142, "Frank Darabont");
+
+    std::cout << "\n--- Item Information ---" << std::endl;
+    book1.printInfo();
+    book2.printInfo();
+    magazine1.printInfo();
+    magazine2.printInfo();
+    dvd1.printInfo();
+    dvd2.printInfo();
+
+    std::cout << "\n--- Indexing Operator ---" << std::endl;
+    try {
+        std::cout << "First character of book title: " << book1[0] << std::endl;
+        std::cout << "Fifth character of magazine title: " << magazine1[4] << std::endl;
+        std::cout << "Character beyond title length: " << book1[100] << std::endl;
+    }
+    catch (const std::out_of_range& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+
+    std::cout << "\n--- Year Comparison ---" << std::endl;
+    compareByYear(book1, book2);
+    compareByYear(magazine1, magazine2);
+    compareByYear(dvd1, dvd2);
+
+    std::cout << "\n--- Object Statistics ---" << std::endl;
+    std::cout << "Total Items: " << Item::getTotalItems() << std::endl;
+    std::cout << "Books: " << Book::getBookCount() << std::endl;
+    std::cout << "Magazines: " << Magazine::getMagazineCount() << std::endl;
+    std::cout << "DVDs: " << DVD::getDVDCount() << std::endl;
+
+    std::cout << "\n--- Copy Demonstration ---" << std::endl;
+    Book bookCopy = book1;
+    bookCopy.printInfo();
+
+    std::cout << "\n--- Assignment Demonstration ---" << std::endl;
+    Book book3(7, "Temporary Book", 2000, "Author", "000-0-000-00000-0");
+    book3 = book2;
+    book3.printInfo();
+}
+
+int main() {
+    demonstrateLibrary();
+
+    std::cout << "\n=== COUNTER CHECK AFTER OBJECT DESTRUCTION ===" << std::endl;
+    std::cout << "Total Items: " << Item::getTotalItems() << std::endl;
+    std::cout << "Books: " << Book::getBookCount() << std::endl;
+    std::cout << "Magazines: " << Magazine::getMagazineCount() << std::endl;
+    std::cout << "DVDs: " << DVD::getDVDCount() << std::endl;
+
+    return 0;
+}
