@@ -1,0 +1,201 @@
+#include <iostream>
+#include <string>
+#include <cmath>
+#include <vector>
+
+class Color {
+private:
+    std::string color;
+
+public:
+    Color(const std::string& color) : color(color) {}
+
+    std::string getColor() const { return color; }
+    void setColor(const std::string& newColor) { color = newColor; }
+};
+
+class Shape {
+public:
+    virtual ~Shape() {}
+    virtual double area() const = 0;
+    virtual std::string getName() const = 0;
+};
+
+class ColoredShape : public Shape, public Color {
+public:
+    ColoredShape(const std::string& color) : Color(color) {}
+};
+
+class Rectangle : public ColoredShape {
+private:
+    double width;
+    double height;
+
+public:
+    Rectangle(double w, double h, const std::string& color = "black")
+        : ColoredShape(color), width(w), height(h) {
+        if (w <= 0 || h <= 0) {
+            throw std::invalid_argument("Width and height must be positive");
+        }
+    }
+
+    double area() const override {
+        return width * height;
+    }
+
+    std::string getName() const override {
+        return "Rectangle";
+    }
+
+    double getWidth() const { return width; }
+    double getHeight() const { return height; }
+
+    friend class ShapePrinter;
+};
+
+class Circle : public ColoredShape {
+private:
+    double radius;
+
+public:
+    Circle(double r, const std::string& color = "black")
+        : ColoredShape(color), radius(r) {
+        if (r <= 0) {
+            throw std::invalid_argument("Radius must be positive");
+        }
+    }
+
+    double area() const override {
+        return 3.141592 * radius * radius;
+    }
+
+    std::string getName() const override {
+        return "Circle";
+    }
+
+    double getRadius() const { return radius; }
+
+    friend class ShapePrinter;
+};
+
+class Triangle : public ColoredShape {
+private:
+    double side1;
+    double side2;
+    double side3;
+
+public:
+    Triangle(double s1, double s2, double s3, const std::string& color = "black")
+        : ColoredShape(color), side1(s1), side2(s2), side3(s3) {
+        if (s1 <= 0 || s2 <= 0 || s3 <= 0) {
+            throw std::invalid_argument("All sides must be positive");
+        }
+        if (s1 + s2 <= s3 || s1 + s3 <= s2 || s2 + s3 <= s1) {
+            throw std::invalid_argument("Invalid triangle sides");
+        }
+    }
+
+    double area() const override {
+        double s = (side1 + side2 + side3) / 2;
+        return std::sqrt(s * (s - side1) * (s - side2) * (s - side3));
+    }
+
+    std::string getName() const override {
+        return "Triangle";
+    }
+
+    double getSide1() const { return side1; }
+    double getSide2() const { return side2; }
+    double getSide3() const { return side3; }
+
+    friend class ShapePrinter;
+};
+
+class ShapePrinter {
+public:
+    static void printDetails(const Rectangle& rect) {
+        std::cout << "Rectangle Details:" << std::endl;
+        std::cout << "  Width: " << rect.width << std::endl;
+        std::cout << "  Height: " << rect.height << std::endl;
+        std::cout << "  Color: " << rect.getColor() << std::endl;
+        std::cout << "  Area: " << rect.area() << std::endl;
+    }
+
+    static void printDetails(const Circle& circle) {
+        std::cout << "Circle Details:" << std::endl;
+        std::cout << "  Radius: " << circle.radius << std::endl;
+        std::cout << "  Color: " << circle.getColor() << std::endl;
+        std::cout << "  Area: " << circle.area() << std::endl;
+    }
+
+    static void printDetails(const Triangle& triangle) {
+        std::cout << "Triangle Details:" << std::endl;
+        std::cout << "  Side 1: " << triangle.side1 << std::endl;
+        std::cout << "  Side 2: " << triangle.side2 << std::endl;
+        std::cout << "  Side 3: " << triangle.side3 << std::endl;
+        std::cout << "  Color: " << triangle.getColor() << std::endl;
+        std::cout << "  Area: " << triangle.area() << std::endl;
+    }
+};
+void demonstrateShapes() {
+    std::cout << "=== GEOMETRIC SHAPES DEMONSTRATION ===" << std::endl;
+
+    Rectangle rect(5.0, 3.0, "blue");
+    Circle circle(4.0, "red");
+    Triangle triangle(3.0, 4.0, 5.0, "green");
+
+    std::vector<Shape*> shapes = { &rect, &circle, &triangle };
+
+    std::cout << "\n--- Using virtual functions ---" << std::endl;
+    for (Shape* shape : shapes) {
+        std::cout << shape->getName() << " area: " << shape->area() << std::endl;
+    }
+
+    std::cout << "\n--- Using friend class ShapePrinter ---" << std::endl;
+    ShapePrinter::printDetails(rect);
+    std::cout << std::endl;
+    ShapePrinter::printDetails(circle);
+    std::cout << std::endl;
+    ShapePrinter::printDetails(triangle);
+
+    std::cout << "\n--- Using pointers to member functions ---" << std::endl;
+    double (Shape:: * areaFunc)() const = &Shape::area;
+
+    for (Shape* shape : shapes) {
+        double area = (shape->*areaFunc)();
+        std::cout << shape->getName() << " area (via member pointer): " << area << std::endl;
+    }
+
+    std::cout << "\n--- Testing multiple inheritance ---" << std::endl;
+    ColoredShape* coloredRect = &rect;
+    ColoredShape* coloredCircle = &circle;
+
+    std::cout << "Rectangle color: " << coloredRect->getColor() << std::endl;
+    std::cout << "Circle color: " << coloredCircle->getColor() << std::endl;
+
+    std::cout << "\n--- Testing polymorphism ---" << std::endl;
+    Shape* shape1 = new Rectangle(2.0, 3.0, "yellow");
+    Shape* shape2 = new Circle(1.5, "purple");
+    Shape* shape3 = new Triangle(5.0, 6.0, 7.0, "orange");
+
+    std::vector<Shape*> dynamicShapes = { shape1, shape2, shape3 };
+
+    for (Shape* shape : dynamicShapes) {
+        std::cout << "Dynamic " << shape->getName() << " area: " << shape->area() << std::endl;
+    }
+
+    delete shape1;
+    delete shape2;
+    delete shape3;
+}
+
+int main() {
+    try {
+        demonstrateShapes();
+    }
+    catch (const std::exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+
+    return 0;
+}
