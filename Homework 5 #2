@@ -1,0 +1,264 @@
+#include <iostream>
+#include <stdexcept>
+#include <vector>
+
+class Matrix {
+private:
+    int rows;
+    int cols;
+    int** data;
+    static int matrix_count;
+
+    class RowProxy {
+    private:
+        int* row;
+        int size;
+    public:
+        RowProxy(int* row, int size) : row(row), size(size) {}
+
+        int& operator[](int col) {
+            if (col < 0 || col >= size) {
+                throw std::out_of_range("Column index out of range");
+            }
+            return row[col];
+        }
+
+        const int& operator[](int col) const {
+            if (col < 0 || col >= size) {
+                throw std::out_of_range("Column index out of range");
+            }
+            return row[col];
+        }
+    };
+
+    void allocateMemory() {
+        data = new int* [rows];
+        for (int i = 0; i < rows; ++i) {
+            data[i] = new int[cols]();
+        }
+    }
+
+    void deallocateMemory() {
+        if (data) {
+            for (int i = 0; i < rows; ++i) {
+                delete[] data[i];
+            }
+            delete[] data;
+        }
+    }
+
+    void copyData(const Matrix& other) {
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                data[i][j] = other.data[i][j];
+            }
+        }
+    }
+
+    int calculateDeterminant() const {
+        if (rows != cols) {
+            return 0;
+        }
+
+        if (rows == 1) {
+            return data[0][0];
+        }
+
+        if (rows == 2) {
+            return data[0][0] * data[1][1] - data[0][1] * data[1][0];
+        }
+
+        int det = 0;
+        for (int j = 0; j < cols; ++j) {
+            Matrix minor(rows - 1, cols - 1);
+            for (int mi = 1; mi < rows; ++mi) {
+                int mj = 0;
+                for (int k = 0; k < cols; ++k) {
+                    if (k != j) {
+                        minor[mi - 1][mj++] = data[mi][k];
+                    }
+                }
+            }
+            int sign = (j % 2 == 0) ? 1 : -1;
+            det += sign * data[0][j] * minor.calculateDeterminant();
+        }
+        return det;
+    }
+
+public:
+    Matrix(int rows, int cols) : rows(rows), cols(cols), data(nullptr) {
+        if (rows <= 0 || cols <= 0) {
+            throw std::invalid_argument("Matrix dimensions must be positive");
+        }
+        allocateMemory();
+        matrix_count++;
+    }
+
+    Matrix(const Matrix& other) : rows(other.rows), cols(other.cols), data(nullptr) {
+        allocateMemory();
+        copyData(other);
+        matrix_count++;
+    }
+
+    ~Matrix() {
+        deallocateMemory();
+        matrix_count--;
+    }
+
+    Matrix& operator=(const Matrix& other) {
+        if (this != &other) {
+            if (rows != other.rows || cols != other.cols) {
+                deallocateMemory();
+                rows = other.rows;
+                cols = other.cols;
+                allocateMemory();
+            }
+            copyData(other);
+        }
+        return *this;
+    }
+
+    RowProxy operator[](int row) {
+        if (row < 0 || row >= rows) {
+            throw std::out_of_range("Row index out of range");
+        }
+        return RowProxy(data[row], cols);
+    }
+
+    const RowProxy operator[](int row) const {
+        if (row < 0 || row >= rows) {
+            throw std::out_of_range("Row index out of range");
+        }
+        return RowProxy(const_cast<int*>(data[row]), cols);
+    }
+
+    Matrix operator+(const Matrix& other) const {
+        if (rows != other.rows || cols != other.cols) {
+            throw std::invalid_argument("Matrix dimensions must match for addition");
+        }
+
+        Matrix result(rows, cols);
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                result[i][j] = data[i][j] + other.data[i][j];
+            }
+        }
+        return result;
+    }
+    Matrix operator*(const Matrix& other) const {
+        if (cols != other.rows) {
+            throw std::invalid_argument("Matrix dimensions incompatible for multiplication");
+        }
+
+        Matrix result(rows, other.cols);
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < other.cols; ++j) {
+                result[i][j] = 0;
+                for (int k = 0; k < cols; ++k) {
+                    result[i][j] += data[i][k] * other.data[k][j];
+                }
+            }
+        }
+        return result;
+    }
+
+    operator bool() const {
+        if (rows != cols) {
+            return false;
+        }
+        return calculateDeterminant() != 0;
+    }
+
+    int getRows() const { return rows; }
+    int getCols() const { return cols; }
+
+    static int getMatrixCount() {
+        return matrix_count;
+    }
+
+    void print() const {
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                std::cout << data[i][j] << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+};
+
+int Matrix::matrix_count = 0;
+
+void demonstrateMatrix() {
+    std::cout << "=== MATRIX DEMONSTRATION ===" << std::endl;
+
+    try {
+        Matrix m1(2, 2);
+        m1[0][0] = 1; m1[0][1] = 2;
+        m1[1][0] = 3; m1[1][1] = 4;
+
+        Matrix m2(2, 2);
+        m2[0][0] = 5; m2[0][1] = 6;
+        m2[1][0] = 7; m2[1][1] = 8;
+
+        std::cout << "Matrix m1:" << std::endl;
+        m1.print();
+
+        std::cout << "Matrix m2:" << std::endl;
+        m2.print();
+
+        Matrix m3 = m1 + m2;
+        std::cout << "m1 + m2:" << std::endl;
+        m3.print();
+
+        Matrix m4 = m1 * m2;
+        std::cout << "m1 * m2:" << std::endl;
+        m4.print();
+
+        std::cout << "Is m1 non-singular? " << (m1 ? "Yes" : "No") << std::endl;
+
+        Matrix m5(1, 1);
+        m5[0][0] = 0;
+        std::cout << "Is 1x1 zero matrix non-singular? " << (m5 ? "Yes" : "No") << std::endl;
+
+        std::cout << "Total matrices created: " << Matrix::getMatrixCount() << std::endl;
+
+        std::cout << "Testing indexing..." << std::endl;
+        std::cout << "m1[0][1] = " << m1[0][1] << std::endl;
+
+        std::cout << "Testing invalid indexing..." << std::endl;
+        std::cout << m1[5][1] << std::endl;
+
+    }
+    catch (const std::exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+
+    try {
+        std::cout << "Testing invalid addition..." << std::endl;
+        Matrix m1(2, 2);
+        Matrix m2(3, 3);
+        Matrix m3 = m1 + m2;
+    }
+    catch (const std::exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+
+    try {
+        std::cout << "Testing invalid multiplication..." << std::endl;
+        Matrix m1(2, 3);
+        Matrix m2(2, 3);
+        Matrix m3 = m1 * m2;
+    }
+    catch (const std::exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+}
+
+int main() {
+    demonstrateMatrix();
+
+    std::cout << "\n=== FINAL MATRIX COUNT ===" << std::endl;
+    std::cout << "Total matrices: " << Matrix::getMatrixCount() << std::endl;
+
+    return 0;
+}
