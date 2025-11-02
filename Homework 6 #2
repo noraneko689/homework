@@ -1,0 +1,364 @@
+#include <iostream>
+#include <vector>
+#include <memory>
+#include <stdexcept>
+#include <string>
+
+namespace MatrixAlgebra {
+
+    class MatrixException : public std::runtime_error {
+    public:
+        MatrixException(const std::string& message) : std::runtime_error(message) {}
+    };
+
+    class IndexOutOfBoundsException : public MatrixException {
+    public:
+        IndexOutOfBoundsException(int row, int col, int maxRow, int maxCol)
+            : MatrixException("Index (" + std::to_string(row) + ", " + std::to_string(col) +
+                ") out of bounds for matrix " + std::to_string(maxRow) + "x" + std::to_string(maxCol)) {}
+    };
+
+    class DimensionMismatchException : public MatrixException {
+    public:
+        DimensionMismatchException(const std::string& operation, int rows1, int cols1, int rows2, int cols2)
+            : MatrixException(operation + " dimension mismatch: (" + std::to_string(rows1) + "x" + std::to_string(cols1) +
+                ") vs (" + std::to_string(rows2) + "x" + std::to_string(cols2) + ")") {}
+    };
+
+    class Matrix {
+    private:
+        int rows_;
+        int cols_;
+        int** data_;
+        static int matrixCount;
+
+        void allocateMemory() {
+            data_ = new int* [rows_];
+            for (int i = 0; i < rows_; ++i) {
+                data_[i] = new int[cols_]();
+            }
+        }
+
+        void deallocateMemory() {
+            if (data_) {
+                for (int i = 0; i < rows_; ++i) {
+                    delete[] data_[i];
+                }
+                delete[] data_;
+                data_ = nullptr;
+            }
+        }
+
+        void copyData(const Matrix& other) {
+            for (int i = 0; i < rows_; ++i) {
+                for (int j = 0; j < cols_; ++j) {
+                    data_[i][j] = other.data_[i][j];
+                }
+            }
+        }
+
+        void validateIndex(int row, int col) const {
+            if (row < 0 || row >= rows_ || col < 0 || col >= cols_) {
+                throw IndexOutOfBoundsException(row, col, rows_, cols_);
+            }
+        }
+
+    public:
+        Matrix(int rows = 0, int cols = 0) : rows_(rows), cols_(cols), data_(nullptr) {
+            matrixCount++;
+            if (rows > 0 && cols > 0) {
+                allocateMemory();
+            }
+        }
+
+        Matrix(const Matrix& other) : rows_(other.rows_), cols_(other.cols_), data_(nullptr) {
+            matrixCount++;
+            if (rows_ > 0 && cols_ > 0) {
+                allocateMemory();
+                copyData(other);
+            }
+        }
+
+        Matrix(std::initializer_list<std::initializer_list<int>> init) {
+            matrixCount++;
+            rows_ = init.size();
+            if (rows_ > 0) {
+                cols_ = init.begin()->size();
+                allocateMemory();
+
+                int i = 0;
+                for (const auto& row : init) {
+                    if (row.size() != cols_) {
+                        deallocateMemory();
+                        throw MatrixException("Inconsistent row sizes in initializer list");
+                    }
+                    int j = 0;
+                    for (int val : row) {
+                        data_[i][j] = val;
+                        j++;
+                    }
+                    i++;
+                }
+            }
+        }
+
+        ~Matrix() {
+            deallocateMemory();
+            matrixCount--;
+        }
+
+        Matrix& operator=(const Matrix& other) {
+            if (this != &other) {
+                deallocateMemory();
+                rows_ = other.rows_;
+                cols_ = other.cols_;
+                if (rows_ > 0 && cols_ > 0) {
+                    allocateMemory();
+                    copyData(other);
+                }
+            }
+            return *this;
+        }
+
+        int getRows() const { return rows_; }
+        int getCols() const { return cols_; }
+
+        int& operator()(int row, int col) {
+            validateIndex(row, col);
+            return data_[row][col];
+        }
+
+        const int& operator()(int row, int col) const {
+            validateIndex(row, col);
+            return data_[row][col];
+        }
+
+        Matrix operator+(const Matrix& other) const {
+            if (rows_ != other.rows_ || cols_ != other.cols_) {
+                throw DimensionMismatchException("Addition", rows_, cols_, other.rows_, other.cols_);
+            }
+
+            Matrix result(rows_, cols_);
+            for (int i = 0; i < rows_; ++i) {
+                for (int j = 0; j < cols_; ++j) {
+                    result.data_[i][j] = this->data_[i][j] + other.data_[i][j];
+                }
+            }
+            return result;
+        }
+
+        Matrix operator*(const Matrix& other) const {
+            if (cols_ != other.rows_) {
+                throw DimensionMismatchException("Multiplication", rows_, cols_, other.rows_, other.cols_);
+            }
+
+            Matrix result(rows_, other.cols_);
+            for (int i = 0; i < rows_; ++i) {
+                for (int j = 0; j < other.cols_; ++j) {
+                    for (int k = 0; k < cols_; ++k) {
+                        result.data_[i][j] += this->data_[i][k] * other.data_[k][j];
+                    }
+                }
+            }
+            return result;
+        }
+
+        Matrix& operator+=(const Matrix& other) {
+            *this = *this + other;
+            return *this;
+        }
+
+        bool operator==(const Matrix& other) const {
+            if (rows_ != other.rows_ || cols_ != other.cols_) {
+                return false;
+            }
+
+            for (int i = 0; i < rows_; ++i) {
+                for (int j = 0; j < cols_; ++j) {
+                    if (data_[i][j] != other.data_[i][j]) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        bool operator!=(const Matrix& other) const {
+            return !(*this == other);
+        }
+
+        void print(std::ostream& os = std::cout) const {
+            for (int i = 0; i < rows_; ++i) {
+                for (int j = 0; j < cols_; ++j) {
+                    os << data_[i][j] << " ";
+                }
+                os << std::endl;
+            }
+        }
+
+        static int getMatrixCount() {
+            return matrixCount;
+        }
+
+        class Iterator {
+        private:
+            Matrix* matrix_;
+            int currentRow_;
+            int currentCol_;
+
+        public:
+            Iterator(Matrix* matrix, int row = 0, int col = 0)
+                : matrix_(matrix), currentRow_(row), currentCol_(col) {}
+
+            Iterator& operator++() {
+                if (matrix_) {
+                    currentCol_++;
+                    if (currentCol_ >= matrix_->cols_) {
+                        currentCol_ = 0;
+                        currentRow_++;
+                    }
+                }
+                return *this;
+            }
+
+            Iterator operator++(int) {
+                Iterator temp = *this;
+                ++(*this);
+                return temp;
+            }
+
+            int& operator*() {
+                return (*matrix_)(currentRow_, currentCol_);
+            }
+
+            bool operator==(const Iterator& other) const {
+                return matrix_ == other.matrix_ &&
+                    currentRow_ == other.currentRow_ &&
+                    currentCol_ == other.currentCol_;
+            }
+
+            bool operator!=(const Iterator& other) const {
+                return !(*this == other);
+            }
+
+            int getRow() const { return currentRow_; }
+            int getCol() const { return currentCol_; }
+        };
+
+        Iterator begin() {
+            return Iterator(this, 0, 0);
+        }
+
+        Iterator end() {
+            return Iterator(this, rows_, 0);
+        }
+};
+
+int Matrix::matrixCount = 0;
+
+std::ostream& operator<<(std::ostream& os, const Matrix& matrix) {
+    matrix.print(os);
+    return os;
+}
+
+}
+
+void demonstrateMatrixOperations() {
+    using namespace MatrixAlgebra;
+
+    try {
+        std::cout << "=== Matrix Operations Demonstration ===\n";
+
+        Matrix m1(2, 3);
+        m1(0, 0) = 1; m1(0, 1) = 2; m1(0, 2) = 3;
+        m1(1, 0) = 4; m1(1, 1) = 5; m1(1, 2) = 6;
+
+        std::cout << "Matrix m1:\n" << m1;
+
+        Matrix m2 = { {1, 2, 3}, {4, 5, 6} };
+        std::cout << "Matrix m2 (initializer list):\n" << m2;
+
+        Matrix m3 = m1 + m2;
+        std::cout << "m1 + m2:\n" << m3;
+
+        Matrix m4(3, 2);
+        m4(0, 0) = 1; m4(0, 1) = 2;
+        m4(1, 0) = 3; m4(1, 1) = 4;
+        m4(2, 0) = 5; m4(2, 1) = 6;
+
+        std::cout << "Matrix m4 (3x2):\n" << m4;
+
+        Matrix m5 = m1 * m4;
+        std::cout << "m1 * m4:\n" << m5;
+
+        std::cout << "Iterating through m1 elements:\n";
+        for (auto it = m1.begin(); it != m1.end(); ++it) {
+            std::cout << "Element at (" << it.getRow() << ", " << it.getCol() << "): " << *it << std::endl;
+        }
+
+        std::cout << "Total matrices created: " << Matrix::getMatrixCount() << std::endl;
+
+    }
+    catch (const MatrixException& e) {
+        std::cerr << "Matrix error: " << e.what() << std::endl;
+    }
+}
+
+void demonstrateExceptions() {
+    using namespace MatrixAlgebra;
+
+    std::cout << "\n=== Exception Handling Demonstration ===\n";
+
+    try {
+        try {
+            std::cout << "Testing index out of bounds...\n";
+            Matrix m(2, 2);
+            m(5, 5) = 10;
+        }
+        catch (const IndexOutOfBoundsException& e) {
+            std::cout << "Caught index exception: " << e.what() << std::endl;
+            throw;
+        }
+    }
+    catch (const MatrixException& e) {
+        std::cout << "Rethrown exception caught: " << e.what() << std::endl;
+    }
+
+    try {
+        std::cout << "Testing dimension mismatch in addition...\n";
+        Matrix m1(2, 2);
+        Matrix m2(3, 3);
+        Matrix m3 = m1 + m2;
+    }
+    catch (const DimensionMismatchException& e) {
+        std::cout << "Caught dimension exception: " << e.what() << std::endl;
+    }
+
+    try {
+        std::cout << "Testing dimension mismatch in multiplication...\n";
+        Matrix m1(2, 3);
+        Matrix m2(2, 3);
+        Matrix m3 = m1 * m2;
+    }
+    catch (const DimensionMismatchException& e) {
+        std::cout << "Caught dimension exception: " << e.what() << std::endl;
+    }
+}
+
+int main() {
+    using namespace MatrixAlgebra;
+
+    try {
+        demonstrateMatrixOperations();
+        demonstrateExceptions();
+
+        std::cout << "\n=== Final Matrix Count: " << Matrix::getMatrixCount() << " ===\n";
+
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Unexpected error: " << e.what() << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
