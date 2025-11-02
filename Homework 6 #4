@@ -1,0 +1,260 @@
+
+#include <iostream>
+#include <stdexcept>
+#include <type_traits>
+
+namespace SmartPointerNS {
+
+    class SmartPointerException : public std::runtime_error {
+    public:
+        explicit SmartPointerException(const std::string& message)
+            : std::runtime_error(message) {}
+    };
+
+    template<typename T>
+    class SmartPointer {
+    private:
+        T* ptr;
+        static int ref_count;
+
+        void cleanup() {
+            if (ptr) {
+                delete ptr;
+                ptr = nullptr;
+            }
+        }
+
+    public:
+        SmartPointer() : ptr(nullptr) {
+            ref_count++;
+        }
+
+        explicit SmartPointer(T* p) : ptr(p) {
+            ref_count++;
+        }
+
+        SmartPointer(const SmartPointer& other) : ptr(other.ptr) {
+            ref_count++;
+        }
+
+        SmartPointer& operator=(const SmartPointer& other) {
+            if (this != &other) {
+                cleanup();
+                ptr = other.ptr;
+            }
+            return *this;
+        }
+
+        ~SmartPointer() {
+            ref_count--;
+            if (ref_count == 0) {
+                cleanup();
+            }
+        }
+
+        T& operator*() {
+            if (!ptr) {
+                throw SmartPointerException("Dereferencing null pointer");
+            }
+            return *ptr;
+        }
+
+        T* operator->() {
+            if (!ptr) {
+                throw SmartPointerException("Accessing member of null pointer");
+            }
+            return ptr;
+        }
+
+        const T& operator*() const {
+            if (!ptr) {
+                throw SmartPointerException("Dereferencing null pointer");
+            }
+            return *ptr;
+        }
+
+        const T* operator->() const {
+            if (!ptr) {
+                throw SmartPointerException("Accessing member of null pointer");
+            }
+            return ptr;
+        }
+
+        T* get() {
+            return ptr;
+        }
+
+        bool isValid() const {
+            return ptr != nullptr;
+        }
+
+        static int getRefCount() {
+            return ref_count;
+        }
+    };
+
+    template<typename T>
+    int SmartPointer<T>::ref_count = 0;
+
+    template<typename T>
+    class SmartPointer<T[]> {
+    private:
+        T* ptr;
+        static int ref_count;
+
+        void cleanup() {
+            if (ptr) {
+                delete[] ptr;
+                ptr = nullptr;
+            }
+        }
+
+    public:
+        SmartPointer() : ptr(nullptr) {
+            ref_count++;
+        }
+
+        explicit SmartPointer(T* p) : ptr(p) {
+            ref_count++;
+        }
+
+        SmartPointer(const SmartPointer& other) : ptr(other.ptr) {
+            ref_count++;
+        }
+
+        SmartPointer& operator=(const SmartPointer& other) {
+            if (this != &other) {
+                cleanup();
+                ptr = other.ptr;
+            }
+            return *this;
+        }
+
+        ~SmartPointer() {
+            ref_count--;
+            if (ref_count == 0) {
+                cleanup();
+            }
+        }
+
+        T& operator[](size_t index) {
+            if (!ptr) {
+                throw SmartPointerException("Accessing array element of null pointer");
+            }
+            return ptr[index];
+        }
+
+        const T& operator[](size_t index) const {
+            if (!ptr) {
+                throw SmartPointerException("Accessing array element of null pointer");
+            }
+            return ptr[index];
+        }
+
+        T* get() {
+            return ptr;
+        }
+
+        bool isValid() const {
+            return ptr != nullptr;
+        }
+
+        static int getRefCount() {
+            return ref_count;
+        }
+    };
+
+    template<typename T>
+    int SmartPointer<T[]>::ref_count = 0;
+
+    class TestClass {
+    public:
+        void printMessage(const std::string& msg) {
+            std::cout << "TestClass: " << msg << std::endl;
+        }
+
+        int multiply(int a, int b) {
+            return a * b;
+        }
+
+        static void staticMethod() {
+            std::cout << "Static method called" << std::endl;
+        }
+    };
+
+}
+
+using namespace SmartPointerNS;
+
+void demonstrateMethodPointers() {
+    try {
+        SmartPointer<TestClass> ptr(new TestClass());
+
+        void (TestClass:: * printFunc)(const std::string&) = &TestClass::printMessage;
+        int (TestClass:: * multiplyFunc)(int, int) = &TestClass::multiply;
+        ((ptr.get())->*printFunc)("Hello from method pointer");
+        int result = ((ptr.get())->*multiplyFunc)(5, 7);
+        std::cout << "Multiplication result: " << result << std::endl;
+
+    }
+    catch (const SmartPointerException& e) {
+        std::cerr << "Error in method pointer demo: " << e.what() << std::endl;
+    }
+}
+
+void demonstrateNestedTryCatch() {
+    try {
+        try {
+            SmartPointer<int> ptr;
+            std::cout << "Value: " << *ptr << std::endl;
+
+        }
+        catch (const SmartPointerException& e) {
+            std::cout << "Inner catch: " << e.what() << std::endl;
+            throw;
+        }
+
+    }
+    catch (const SmartPointerException& e) {
+        std::cout << "Outer catch: " << e.what() << std::endl;
+    }
+}
+
+void demonstrateArraySpecialization() {
+    try {
+        SmartPointer<int[]> arrPtr(new int[5] {1, 2, 3, 4, 5});
+
+        for (int i = 0; i < 5; ++i) {
+            std::cout << "arr[" << i << "] = " << arrPtr[i] << std::endl;
+        }
+
+    }
+    catch (const SmartPointerException& e) {
+        std::cerr << "Array error: " << e.what() << std::endl;
+    }
+}
+
+int main() {
+    try {
+        demonstrateMethodPointers();
+        demonstrateNestedTryCatch();
+        demonstrateArraySpecialization();
+
+        SmartPointer<int> ptr1(new int(42));
+        std::cout << "Value: " << *ptr1 << std::endl;
+        std::cout << "Reference count: " << SmartPointer<int>::getRefCount() << std::endl;
+
+        {
+            SmartPointer<int> ptr2 = ptr1;
+            std::cout << "Reference count after copy: " << SmartPointer<int>::getRefCount() << std::endl;
+        }
+
+        std::cout << "Reference count after scope: " << SmartPointer<int>::getRefCount() << std::endl;
+
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Main caught: " << e.what() << std::endl;
+    }
+
+    return 0;
+}
