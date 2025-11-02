@@ -1,0 +1,302 @@
+#include <iostream>
+#include <string>
+#include <memory>
+#include <stdexcept>
+#include <vector>
+
+class PersonException : public std::runtime_error {
+public:
+    PersonException(const std::string& message) : std::runtime_error(message) {}
+};
+
+class Person {
+protected:
+    std::string name;
+    int age;
+
+    void validateAge() const {
+        if (age < 0 || age > 150) {
+            throw PersonException("Invalid age: " + std::to_string(age));
+        }
+    }
+
+public:
+    Person(const std::string& name = "", int age = 0) : name(name), age(age) {
+        validateAge();
+    }
+
+    virtual ~Person() {
+        std::cout << "Person destructor: " << name << std::endl;
+    }
+
+    virtual void printInfo() const {
+        std::cout << "Name: " << name << ", Age: " << age;
+    }
+
+    std::string getName() const { return name; }
+    int getAge() const { return age; }
+
+    void setName(const std::string& newName) { name = newName; }
+    void setAge(int newAge) {
+        age = newAge;
+        validateAge();
+    }
+
+    friend bool compareByAge(const Person& p1, const Person& p2);
+};
+
+bool compareByAge(const Person& p1, const Person& p2) {
+    return p1.age < p2.age;
+}
+
+class Employee : virtual public Person {
+protected:
+    double salary;
+
+    void validateSalary() const {
+        if (salary < 0) {
+            throw PersonException("Invalid salary: " + std::to_string(salary));
+        }
+    }
+
+public:
+    Employee(const std::string& name = "", int age = 0, double salary = 0.0)
+        : Person(name, age), salary(salary) {
+        validateSalary();
+    }
+
+    virtual ~Employee() override {
+        std::cout << "Employee destructor: " << name << std::endl;
+    }
+
+    virtual void printInfo() const override {
+        Person::printInfo();
+        std::cout << ", Salary: " << salary;
+    }
+
+    double getSalary() const { return salary; }
+    void setSalary(double newSalary) {
+        salary = newSalary;
+        validateSalary();
+    }
+
+    void work() const {
+        std::cout << name << " is working" << std::endl;
+    }
+};
+
+class Student : virtual public Person {
+protected:
+    double averageGrade;
+
+    void validateGrade() const {
+        if (averageGrade < 0 || averageGrade > 10) {
+            throw PersonException("Invalid average grade: " + std::to_string(averageGrade));
+        }
+    }
+
+public:
+    Student(const std::string& name = "", int age = 0, double averageGrade = 0.0)
+        : Person(name, age), averageGrade(averageGrade) {
+        validateGrade();
+    }
+
+    virtual ~Student() override {
+        std::cout << "Student destructor: " << name << std::endl;
+    }
+
+    virtual void printInfo() const override {
+        Person::printInfo();
+        std::cout << ", Average Grade: " << averageGrade;
+    }
+
+    double getAverageGrade() const { return averageGrade; }
+    void setAverageGrade(double newGrade) {
+        averageGrade = newGrade;
+        validateGrade();
+    }
+
+    void study() const {
+        std::cout << name << " is studying" << std::endl;
+    }
+};
+
+class WorkingStudent : public Employee, public Student {
+public:
+    WorkingStudent(const std::string& name = "", int age = 0,
+        double salary = 0.0, double averageGrade = 0.0)
+        : Person(name, age), Employee(name, age, salary), Student(name, age, averageGrade) {
+    }
+
+    ~WorkingStudent() override {
+        std::cout << "WorkingStudent destructor: " << name << std::endl;
+    }
+
+    void printInfo() const override {
+        Person::printInfo();
+        std::cout << ", Salary: " << salary << ", Average Grade: " << averageGrade;
+    }
+
+    void demonstrateHiding() {
+        Employee::work();
+        Student::study();
+        std::cout << name << " is working and studying simultaneously!" << std::endl;
+    }
+
+    void manageTime() const {
+        std::cout << name << " is managing time between work and studies" << std::endl;
+    }
+};
+void demonstrateDynamicCasting() {
+    std::cout << "\n=== Dynamic Casting Demonstration ===" << std::endl;
+
+    std::vector<std::unique_ptr<Person>> people;
+    people.push_back(std::make_unique<Person>("John", 25));
+    people.push_back(std::make_unique<Employee>("Alice", 30, 50000));
+    people.push_back(std::make_unique<Student>("Bob", 20, 8.5));
+    people.push_back(std::make_unique<WorkingStudent>("Carol", 22, 25000, 9.0));
+
+    for (const auto& person : people) {
+        std::cout << "\nChecking type for: " << person->getName() << std::endl;
+
+        if (auto employee = dynamic_cast<Employee*>(person.get())) {
+            std::cout << "  - Is an Employee" << std::endl;
+            employee->work();
+        }
+
+        if (auto student = dynamic_cast<Student*>(person.get())) {
+            std::cout << "  - Is a Student" << std::endl;
+            student->study();
+        }
+
+        if (auto workingStudent = dynamic_cast<WorkingStudent*>(person.get())) {
+            std::cout << "  - Is a WorkingStudent" << std::endl;
+            workingStudent->manageTime();
+        }
+
+        if (!dynamic_cast<Employee*>(person.get()) &&
+            !dynamic_cast<Student*>(person.get())) {
+            std::cout << "  - Is a basic Person" << std::endl;
+        }
+    }
+}
+
+void demonstrateFunctionHiding() {
+    std::cout << "\n=== Function Hiding Demonstration ===" << std::endl;
+
+    WorkingStudent ws("David", 23, 30000, 8.7);
+
+    ws.printInfo();
+    std::cout << std::endl;
+
+    ws.demonstrateHiding();
+
+    Employee& empRef = ws;
+    Student& studRef = ws;
+
+    std::cout << "\nThrough Employee reference:" << std::endl;
+    empRef.printInfo();
+    std::cout << std::endl;
+
+    std::cout << "Through Student reference:" << std::endl;
+    studRef.printInfo();
+    std::cout << std::endl;
+}
+
+void demonstrateAgeComparison() {
+    std::cout << "\n=== Age Comparison Demonstration ===" << std::endl;
+
+    Person p1("Alice", 25);
+    Person p2("Bob", 30);
+    Employee e1("Charlie", 35, 40000);
+    Student s1("Diana", 20, 9.0);
+
+    std::cout << "Comparing " << p1.getName() << " and " << p2.getName() << ": ";
+    if (compareByAge(p1, p2)) {
+        std::cout << p1.getName() << " is younger than " << p2.getName() << std::endl;
+    }
+    else {
+        std::cout << p2.getName() << " is younger than " << p1.getName() << std::endl;
+    }
+
+    std::cout << "Comparing " << e1.getName() << " and " << s1.getName() << ": ";
+    if (compareByAge(e1, s1)) {
+        std::cout << e1.getName() << " is younger than " << s1.getName() << std::endl;
+    }
+    else {
+        std::cout << s1.getName() << " is younger than " << e1.getName() << std::endl;
+    }
+}
+
+void demonstrateExceptions() {
+    std::cout << "\n=== Exception Handling Demonstration ===" << std::endl;
+
+    try {
+        std::cout << "Attempting to create person with negative age..." << std::endl;
+        Person invalidPerson("Invalid", -5);
+    }
+    catch (const PersonException& e) {
+        std::cout << "Caught exception: " << e.what() << std::endl;
+    }
+
+    try {
+        std::cout << "Attempting to create employee with negative salary..." << std::endl;
+        Employee invalidEmployee("InvalidEmp", 25, -1000);
+    }
+    catch (const PersonException& e) {
+        std::cout << "Caught exception: " << e.what() << std::endl;
+    }
+
+    try {
+        std::cout << "Attempting to create student with invalid grade..." << std::endl;
+        Student invalidStudent("InvalidStud", 20, 15.0);
+    }
+    catch (const PersonException& e) {
+        std::cout << "Caught exception: " << e.what() << std::endl;
+    }
+
+    try {
+        std::cout << "Attempting to modify age to invalid value..." << std::endl;
+        Person person("Test", 25);
+        person.setAge(200);
+    }
+    catch (const PersonException& e) {
+        std::cout << "Caught exception: " << e.what() << std::endl;
+    }
+}
+void demonstratePolymorphism() {
+    std::cout << "\n=== Polymorphism Demonstration ===" << std::endl;
+
+    std::vector<std::unique_ptr<Person>> people;
+
+    people.push_back(std::make_unique<Person>("John Doe", 40));
+    people.push_back(std::make_unique<Employee>("Jane Smith", 35, 75000));
+    people.push_back(std::make_unique<Student>("Mike Johnson", 19, 8.2));
+    people.push_back(std::make_unique<WorkingStudent>("Sarah Wilson", 21, 20000, 9.1));
+
+    for (const auto& person : people) {
+        person->printInfo();
+        std::cout << std::endl;
+    }
+}
+
+int main() {
+    try {
+        std::cout << "=== Personnel Management System ===" << std::endl;
+
+        demonstratePolymorphism();
+        demonstrateDynamicCasting();
+        demonstrateFunctionHiding();
+        demonstrateAgeComparison();
+        demonstrateExceptions();
+
+        std::cout << "\n=== Program Completed Successfully ===" << std::endl;
+
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Unexpected error: " << e.what() << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
